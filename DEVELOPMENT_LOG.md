@@ -52,3 +52,29 @@ Re-read all main-branch source and README; checked the complete repository trees
 - CPU routing and retreat are intentionally simple; further tuning could reduce dithering near crates and improve range-aware tactics.
 - No sound added in this iteration. Add a gesture-unlocked sound system and volume toggle later.
 - Existing damaged/wrecked assets have different framing; verify animation/visual centres on-device before adding more states.
+
+
+## 2026-11-03 — Prevent shells and blasts bypassing rock cover
+
+### Inspection and reproduction
+Read every source/test/documentation file from the exact current PR #2 head (69a9814f6cbbb4f8fd1b1f3340d8027962f56ce9), checked the complete tree for repository instructions (none), and checked both open PRs. PR #2 remains open, so this iteration continues dev/fortress-battles. Verified all six local PNGs against their current Git blob hashes; no artwork changed.
+
+Reproduced a gameplay bug before editing: put a tank next to a rock wall, an opposing tank on the far side, and fire into the wall. The 24-unit muzzle offset could place the new shell inside the rock. The impact code retained that position and zeroed its velocity, leaving detonate's velocity-based fallback ineffective. A blast could originate inside solid cover and damage the tank behind it (regression reproduced as 3 hull instead of the expected 4).
+
+### Changes
+- Sweep the barrel segment from the tank centre and each flight segment in steps of at most 4 world units. Stop stone impacts at the last free point; detect the first crate/tank contact along the path.
+- Queue a muzzle contact for the next simulation tick, preserving the existing impact/fuse start timing instead of advancing a freshly spawned shell through cover.
+- Refuse blast origins inside solid cells as a defensive check. Preserve ordinary cross-blast propagation and crate destruction.
+- Store the firing angle on the shell so its sprite does not snap to the right when an impact zeroes its velocity.
+- Keep the map, tank durability, speed, difficulty settings and 0.7-second warning fuse. Clip a flight segment to remaining shell lifetime so a slow update cannot extend projectile range.
+- Add tests/projectiles.cjs to npm test; extend the real-image native rendering checks to armed wall impacts. Bump the package to 0.2.1.
+
+### Validation
+- Before the fix, the new point-blank wall regression failed: target behind rock lost a hull point.
+- npm test passes: 12 existing gameplay groups plus 12 projectile regressions. Coverage includes four-direction point-blank wall impacts; off-centre clipped barrels; invalid solid-cell blast origins; wall/tank contacts during a long update; crate warning/detonation timing; next-tick muzzle contact; preserved sprite heading; and armed-fuse restart cleanup. Existing movement, damage/armour, map connectivity, hold-fire, pause, round completion/restart, pickup and six-size viewport checks also pass.
+- npm run test:render passes: all six real PNGs load; native canvas renders both the normal arena and an armed upward wall impact at 844x390, 667x375 and 1024x768. Visually inspected the 844x390 impact render. This is canvas rendering, not DOM/CSS or Safari testing.
+- Five seeded stationary-human normal simulations: first elimination 23.3–26.3s; rounds ended 61.2–102.7s. Every run reached a survivor within the 180-second cap. These are diagnostic simulations, not promises of human match duration. Correct wall occlusion changes combat outcomes and random-number consumption.
+- A direct Playwright Chromium launch failed because its executable is absent at /root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell. Browser automation, real multitouch, DOM/CSS and physical iPhone/iPad Safari remain unverified.
+
+### Remaining / next step
+Prioritise a proper browser/mobile layout and simultaneous-input pass when a browser becomes available. After that, investigate CPU retreat/recentring near cover and gesture-unlocked audio. Preserve lingering-flame damage semantics until deliberately reviewed. No merge or deployment performed.

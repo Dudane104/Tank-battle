@@ -1,12 +1,13 @@
 {
   "name": "blast-tanks",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
-    "test": "node tests/gameplay.cjs",
+    "test": "node tests/gameplay.cjs && node tests/projectiles.cjs",
     "test:render": "node tests/render.cjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.100"
   }
 }
+
