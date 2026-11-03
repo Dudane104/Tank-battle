@@ -78,3 +78,28 @@ Reproduced a gameplay bug before editing: put a tank next to a rock wall, an opp
 
 ### Remaining / next step
 Prioritise a proper browser/mobile layout and simultaneous-input pass when a browser becomes available. After that, investigate CPU retreat/recentring near cover and gesture-unlocked audio. Preserve lingering-flame damage semantics until deliberately reviewed. No merge or deployment performed.
+
+
+## 2026-11-03 — Larger sliding D-pad and layered combat audio (0.3.0)
+
+### User priority / scope
+The user reports that touch steering is hard to change quickly, and requests cleaner, more sensitive cardinal movement, potentially larger controls, continued visual polish and realistic sounds. Continued the current PR #2 source at fce735efb9ce357731d3b055fff2213bca589650. The daily task now prioritises these requests while retaining the wider development brief and existing schedule.
+
+### Changes
+- Replace separate captured arrow presses with a single D-pad capture surface: move a held thumb directly between up/down/left/right without lifting. The previous per-button capture prevented sliding to another arrow.
+- Enlarge the D-pad from 120 to 138px on wide phones (44 to 46px arrow regions) and from 150 to 174px on tablets (50 to 58px arrows). The whole rounded pad, including corners, steers; the small centre area stops movement. Add a clear active arrow and a modest angle hysteresis to avoid flickering between directions near a diagonal. Touch remains cardinal rather than introducing diagonal movement.
+- Keep the steering pointer separate from fire, ignore a second steering finger, and clear steering on release/cancel/capture loss/pause/restart. A direction change feeds the next simulation frame.
+- Add touch-only corner alignment: when a turn would catch a corridor lip, align by at most 10 world units to the nearest valid lane centre, only if both the aligned position and requested next step are collision-free. Preserve the 90-unit base tank speed and existing keyboard/tap handling.
+- Reserve room for the larger controls and safe-area insets without stretching the arena; align the JS/CSS breakpoint at exactly 7:4. The larger fire button is 88px on wide phones.
+- Add layered Web Audio effects for firing, explosions, armour impacts and pickups, using filtered noise and pitched low-frequency percussion. Audio initialises/resumes from play/touch/keyboard gestures; no external sound files are needed. These are realistic-style synthesized effects, not recorded vehicle samples.
+- Add sound on/off and 25/50/75/100% volume controls, saved preferences where storage is available, an in-game sound toggle, a limiter, quiet CPU shots and a 20-voice cap. Stop existing effects on pause/menu/restart/mute. Audio failures do not block the game. Noise uses its own seeded generator, preserving gameplay randomness.
+- Keep all six artwork files unchanged. This iteration's visual changes are control size, shape and held-direction feedback.
+
+### Validation
+- npm test passes 38 groups: 12 existing gameplay, 12 projectile collision and 14 new touch/audio checks. New checks cover continuous slides, cardinal hysteresis/dead zone, simultaneous steering/fire, pointer ownership/cancellation/capture loss, next-frame turns, unchanged base speed, safe corner assistance, reset behaviour, audio gesture creation, effect layers and voice cap, mute/volume/preferences, missing/rejected audio APIs, safe-area arena containment and the exact 7:4 layout boundary.
+- The gameplay suite still covers map connectivity, movement/walls, armour/hull damage, fuse timing, upgrades, pause, round completion and restarting; projectile regressions still cover solid cover and stopped-shell orientation.
+- Native canvas rendering with the six actual PNGs passes at 844x390, 667x375 and 1024x768 for the arena and armed wall impact. Native canvas does not render the HTML control UI or reproduce browser audio.
+- Physical iPhone/iPad Safari thumb feel, true multitouch, CSS layout and listening quality remain unverified: the environment still has no installed Playwright Chromium browser. New touch/audio tests use DOM/Web Audio mocks; they verify state/event handling and graph construction, not actual speakers or Safari policy enforcement.
+
+### Next priorities
+Obtain real-device steering feedback, especially the centre dead zone, quick corner turns and control reach with a phone notch. Refine the synthesized mix after real listening; recorded licensed samples/engine ambience can be considered later. Continue visual animation work and CPU cover navigation while keeping battles tactical. No merge or deployment performed.
