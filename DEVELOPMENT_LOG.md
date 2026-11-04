@@ -103,3 +103,25 @@ The user reports that touch steering is hard to change quickly, and requests cle
 
 ### Next priorities
 Obtain real-device steering feedback, especially the centre dead zone, quick corner turns and control reach with a phone notch. Refine the synthesized mix after real listening; recorded licensed samples/engine ambience can be considered later. Continue visual animation work and CPU cover navigation while keeping battles tactical. No merge or deployment performed.
+
+## 2026-11-04 — Reliable fire ownership and interrupted audio recovery (0.3.1)
+
+### Scope / changes
+- Inspected current PR #2, open PRs, the full project and development log at d8dd3463e722f79f3374ebe1f7c81fc612e5e4eb. No repository AGENTS.md was present. Continued dev/fortress-battles; no duplicate PR. Preserved the larger sliding D-pad, hysteresis/dead zone, turn assistance, wall occlusion, 90-unit speed, fortified map, hull/armour and combat timing.
+- Give FIRE a single pointer owner. Ignore additional fingers and unrelated/stale pointer releases or capture-loss events. Previously another finger could steal capture and stop held fire.
+- Separate Space and touch firing so releasing one input does not cancel the other; held feedback remains active while either source fires. Pause/restart/blur clear both owners and keyboard state. Ignore gameplay key presses while paused; held Escape no longer repeatedly toggles pause.
+- Catch fire capture failures and add owner-matched window pointerup/cancel fallback for both controls, preventing stuck input when release occurs outside the control after a failed capture.
+- Resume audio from the Resume gesture, including an interrupted context. Rebuild a closed context on the next enabled gesture with saved volume/mute behaviour intact. Failed resume remains harmless and retryable. Preserve the existing synthesized layers, limiter and 20-voice cap; no new sound timbres or vehicle samples in this focused bug-fix iteration.
+- Verify all six PNG bytes against the current GitHub tree and preserve artwork unchanged. No new visual art or gameplay balance changes.
+- Add a reproducible npm run package:standalone command to embed original artwork into an offline HTML; its packaging assertions verify six valid PNGs and identical game code after restoring the manifest. Native render tests also accept embedded-image builds. Output is dist/BLAST_TANKS_V0_3_1.html (3,016,434 bytes).
+
+### Actual validation
+- Before the fix, the new fire-ownership regression failed: second pointer captured FIRE (21 rather than owner 20). Afterward it passes.
+- npm test: 44 passing groups (12 gameplay, 12 projectile, 20 touch/audio). Six added groups cover fire ownership/stale capture loss, independent Space/touch firing, failed capture/window release, interrupted/closed audio recovery, held Escape/reset events and retry after a synchronous resume failure. Existing rejected-promise/missing-audio, mute/volume, voice-cap, simultaneous steering/fire, responsive steering, speed, wall/corner collision, damage, routing, round completion and restart tests still pass. Pointercancel mock now includes the real event's pointerId.
+- The fallback-audio test uses shared mock listeners, so it runs last to avoid replacing the primary game's handlers before input checks. Asset fallback assertion now uses the supplied build's source URL, allowing the same checks on an embedded manifest.
+- Ran all 44 groups again against the standalone HTML: pass. The packaging byte-restoration check passes.
+- npm run test:render passes for repository source and again for the standalone HTML: six original PNGs decoded; arena and armed wall-impact scenes rendered at 844x390, 667x375 and 1024x768. Inspected the 844x390 wall-impact image. This is native Canvas, not HTML/CSS browser rendering.
+- Playwright Chromium launch attempted and failed: executable absent at /root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell. Browser layout, genuine multitouch, Safari audio policy and physical-device listening remain unverified. Audio tests use mocks and do not establish acoustic realism.
+
+### Next priorities / limitations
+Get iPhone/iPad landscape feedback on fast cardinal slides, notch-side reach, simultaneous fire and sound after app switching. Listen to the existing mix before changing timbres or adding a vehicle loop/recorded samples. Continue CPU cover navigation and animation polish after that; no uncertain major design changes made here. No merge or deployment performed.
