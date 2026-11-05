@@ -23,6 +23,8 @@ See DEVELOPMENT_LOG.md for changes, measurements and remaining work.
 
 
 ## Offline single-file build
-Run `npm run package:standalone` to create `dist/BLAST_TANKS_V0_3_1.html` with all six original PNGs embedded. The script checks that packaging preserves game code. To test that output, pass its path to each `tests/gameplay.cjs`, `tests/projectiles.cjs`, `tests/touch-audio.cjs` and `tests/render.cjs` command (the last needs the optional canvas dependency).
+Run `npm run package:standalone` to create `dist/BLAST_TANKS_V0_3_2.html` with all six original PNGs embedded. The script checks that packaging preserves game code. To test that output, pass its path to each `tests/gameplay.cjs`, `tests/projectiles.cjs`, `tests/touch-audio.cjs` and `tests/render.cjs` command (the last needs the optional canvas dependency).
 
 Version 0.3.1 fixes extra-finger cancellation of held FIRE, independent Space/touch release, failed pointer capture cleanup and audio recovery on Resume after interruptions. The sliding D-pad, speed and tactical battle balance are unchanged. Native tests do not establish physical Safari touch feel or listening quality.
+
+Version 0.3.2 resolves steering before gesture-triggered fire and turns/moves before automatic held fire. A quick D-pad slide plus FIRE now shoots in the current requested direction, including when both events arrive between animation frames. Movement speed, cooldown and tactical battle rules remain unchanged.

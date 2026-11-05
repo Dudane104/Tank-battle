@@ -125,3 +125,27 @@ Obtain real-device steering feedback, especially the centre dead zone, quick cor
 
 ### Next priorities / limitations
 Get iPhone/iPad landscape feedback on fast cardinal slides, notch-side reach, simultaneous fire and sound after app switching. Listen to the existing mix before changing timbres or adding a vehicle loop/recorded samples. Continue CPU cover navigation and animation polish after that; no uncertain major design changes made here. No merge or deployment performed.
+
+## 2026-11-05 — Turn-and-fire responsiveness (0.3.2)
+
+### Inspection and reproduced issue
+Checked the current open PRs (#2 development and #1 asset upload), recursive repository tree and all project source/tests/documentation. PR #2 is still open at 0287865c4999bc14f01a439170c0b977e1daf497, so continued dev/fortress-battles. No AGENTS.md is present. Verified cached source/artwork against the fresh Git tree and fetched the remaining test files from that exact head before editing. All six PNG originals remain unchanged.
+
+A D-pad event changes steering intent immediately, but the tank heading used to update only during movement. Pressing FIRE between that event and the next animation frame therefore shot in the previous direction. Held fire also ran before movement, allowing a stale-heading shot on a turning frame. Added an immediate-up regression first: it failed with “Shot must follow the latest steering direction” against the current baseline.
+
+### Changes
+- Centralise reading keyboard/touch direction in playerDirection(). Gesture-triggered FIRE/Space resolves the latest directional intent before shooting, even between frames. Do not advance the tank position from input handlers.
+- Process player movement/turning before automatic held fire in the simulation update. This also honours a blocked turn's heading while preserving collision checks.
+- Keep shooting cooldown, shell limits/lifetime, wall sweep, warning fuse, hull/armour, protected approaches, base speed (90), CPU behaviour, D-pad dimensions/dead zone/hysteresis and separate pointer ownership intact. No new art, animation, sound timbres or vehicle loop in this focused input bug-fix iteration; existing synthesized audio and volume/mute/recovery remain intact.
+- Bump to 0.3.2 and regenerate the embedded-artwork standalone HTML through the committed packaging script; README documents the behaviour.
+
+### Actual tests and results
+- npm test passes 52 groups: 12 gameplay, 12 projectile and 28 touch/audio. Eight added checks cover immediate turns plus FIRE in all four directions before any simulation frame, held-fire thumb sliding on the next update, immediate keyboard direction plus Space, wall sweep/fuse after an immediate turn, and centre dead-zone heading/cooldown preservation. The pre-frame checks also assert unchanged tank position, speed and cooldown.
+- Existing tests still cover simultaneous steering/fire, pointer cancellation/capture loss/window release, damage/armour/invulnerability, map routes and protected approaches, wall occlusion, pause/completion/restart, safe-area transforms, audio creation/interruption/mute/volume/voice limits and missing/rejected Web Audio APIs. These are DOM/audio mocks, not actual browser gestures or listening.
+- npm run package:standalone passes: all six valid original PNGs embedded; restoring the manifest yields identical game source. Output: dist/BLAST_TANKS_V0_3_2.html (3,016,767 bytes).
+- Ran all 52 groups again against the standalone HTML: pass.
+- npm run test:render passes for source and standalone: six real PNGs load and arena/armed wall-impact scenes render at 844x390, 667x375 and 1024x768. Inspected the 667x375 wall-impact render. Native Canvas does not render HTML controls or reproduce Safari.
+- Fresh Playwright Chromium launch fails because /root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell is absent. No browser CSS/multitouch, physical iPhone/iPad, frame-rate or sound-quality verification claimed.
+
+### Next priorities / limitations
+Play on physical Safari to assess rapid thumb turns while firing, dead-zone feel, reach and audio after app switching. Then refine the mix/vehicle audio with listening evidence and improve CPU escape/cover navigation and animations. Direct tap movement still has no pathfinding; lingering-blast damage rules remain unchanged pending a deliberate design decision. No merge or deployment performed.
