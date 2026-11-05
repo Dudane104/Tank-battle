@@ -149,3 +149,9 @@ A D-pad event changes steering intent immediately, but the tank heading used to 
 
 ### Next priorities / limitations
 Play on physical Safari to assess rapid thumb turns while firing, dead-zone feel, reach and audio after app switching. Then refine the mix/vehicle audio with listening evidence and improve CPU escape/cover navigation and animations. Direct tap movement still has no pathfinding; lingering-blast damage rules remain unchanged pending a deliberate design decision. No merge or deployment performed.
+
+## 2026-11-05 — Compact standalone build and startup checks (0.3.3)
+
+The player reported that the 0.3.2 HTML no longer loaded. The exact failure could not be reproduced locally. The new standalone export embeds smaller PNG copies of the six existing sprites at up to 192 pixels on the longest edge. This brings the file down from 3,016,767 to 552,689 bytes. The repository artwork and full resolution packaging option are preserved. The page now shows an opening instruction when JavaScript is disabled and a message if the viewer cannot create a 2D canvas.
+
+The 52 gameplay, projectile and input/audio groups passed on the source and compact export. The native render harness now checks the initial menu frame, invokes the wired Deploy button and renders the first live frame with four tanks. It also decoded all six sprites and rendered arena and wall impact scenes at 844×390, 667×375 and 1024×768 for both versions. The compact arena render was visually inspected. Packaging confirmed the game code is identical to the source once the asset URLs are restored. Physical Safari and the iOS file viewer were unavailable for testing.
