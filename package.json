@@ -1,6 +1,6 @@
 {
   "name": "blast-tanks",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "scripts": {
     "test": "node tests/gameplay.cjs && node tests/projectiles.cjs && node tests/touch-audio.cjs",

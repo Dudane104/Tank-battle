@@ -24,5 +24,95 @@ test('cached canvas sprites and fallback paths',()=>{assert.equal(t.drawSprite(t
 test('pickup is consumed by exactly one tank',()=>{t.start();const {tanks,pickups}=t.get();tanks[0].armor=0;tanks[1].armor=0;tanks[1].x=tanks[0].x;tanks[1].y=tanks[0].y;pickups.push({x:tanks[0].x,y:tanks[0].y,type:'armor',life:14});t.update(1/60);assert.equal(tanks[0].armor+tanks[1].armor,1)});
 test('60 seconds of seeded AI simulation stays finite and opens cover',()=>{t.start();const before=t.get().grid.flat().filter(x=>x===1).length;tick(60);const {tanks,grid,state,elapsed}=t.get();assert.ok(tanks.every(o=>Number.isFinite(o.x)&&Number.isFinite(o.y)&&o.hp>=0));const after=grid.flat().filter(x=>x===1).length;assert.ok(after<before);console.log('  cover',before,'→',after,'alive',tanks.filter(x=>x.alive).length,'time',elapsed.toFixed(1),'state',state)});
 
-if(process.env.BALANCE){for(let run=0;run<5;run++){t.start();let first=null;for(let frame=0;frame<180*60&&t.get().state==='play';frame++){const before=t.get().tanks.filter(o=>o.alive).length;t.update(1/60);if(first===null&&t.get().tanks.filter(o=>o.alive).length<before)first=t.get().elapsed;}console.log('BALANCE',run+1,'first elimination',first?.toFixed(1),'duration',t.get().elapsed.toFixed(1),'alive',t.get().tanks.filter(o=>o.alive).length,'playerHP',t.get().tanks[0].hp)}}
+function combatScenario(level) {
+ t.setDifficulty(level);
+ t.start();
+ t.setElapsed(4);
+ const { tanks, grid, shells }=t.get();
+ for(let y=1;y<14;y++)for(let x=1;x<27;x++)grid[y][x]=0;
+ const [player,cpu]=tanks;
+ Object.assign(player,t.center(7,6));
+ Object.assign(cpu,t.center(5,6),{ai:999,inv:0});
+ for(const other of tanks.slice(2))other.alive=false;
+ return {player,cpu,shells};
+}
 
+function firstResponse(level, dodge) {
+ const {cpu,shells}=combatScenario(level);
+ const {x,y}=cpu;
+ if(dodge)shells.push({x:x-65,y,owner:0,a:0,vx:0,vy:0,fuse:.7,range:1});
+ for(let frame=1;frame<=60;frame++){
+  t.update(1/60);
+  if(dodge?cpu.x!==x||cpu.y!==y:shells.some(shell=>shell.owner===cpu.id))return frame;
+ }
+ return Infinity;
+}
+
+function hitsToDefeat(level) {
+ const {cpu}=combatScenario(level);
+ let hits=0;
+ while(cpu.alive&&hits<8){
+  cpu.inv=0;
+  t.detonate({x:cpu.x,y:cpu.y,range:1});
+  hits++;
+ }
+ assert.equal(cpu.alive,false);
+ return hits;
+}
+
+if(process.env.BALANCE){
+ for(const level of [0,1,2]){
+  console.log('CPU',level,'first shot/dodge frames/hits',firstResponse(level,false),firstResponse(level,true),hitsToDefeat(level));
+  for(const runSeed of [11,23,37,51,71]){
+   seed=runSeed;
+   t.setDifficulty(level);
+   t.start();
+   let first=null;
+   for(let frame=0;frame<180*60&&t.get().state==='play';frame++){
+    const before=t.get().tanks.filter(o=>o.alive).length;
+    t.update(1/60);
+    if(first===null&&t.get().tanks.filter(o=>o.alive).length<before)first=t.get().elapsed;
+   }
+   console.log('BALANCE',level,runSeed,'first',first?.toFixed(1),'duration',t.get().elapsed.toFixed(1),'state',t.get().state);
+  }
+ }
+}
+
+test('Easy and Normal give players a visible reaction window while Hard reacts immediately',()=>{
+ const aim=[0,1,2].map(level=>firstResponse(level,false));
+ const dodge=[0,1,2].map(level=>firstResponse(level,true));
+ for(const frames of [aim,dodge]){
+  assert.equal(frames[2],1);
+  assert.ok(frames[1]>=13&&frames[1]<=20,frames.join(','));
+  assert.ok(frames[0]>=24&&frames[0]<=32,frames.join(','));
+ }
+});
+
+test('A target that ducks behind cover resets Normal aim and fire still requires a clear line',()=>{
+ const {player,cpu,shells}=combatScenario(1);
+ tick(.15);
+ assert.equal(shells.length,0);
+ t.get().grid[6][6]=2;
+ tick(.3);
+ assert.equal(shells.length,0);
+ t.get().grid[6][6]=0;
+ tick(.15);
+ assert.equal(shells.length,0);
+ tick(.15);
+ assert.equal(shells[0].owner,cpu.id);
+ assert.ok(player.alive);
+});
+
+test('Normal and Easy CPU durability drops while Hard and player durability retain five hits',()=>{
+ assert.deepEqual([0,1,2].map(hitsToDefeat),[3,4,5]);
+ for(const level of [0,1,2]){
+  t.setDifficulty(level);
+  t.start();
+  const [player]=t.get().tanks;
+  assert.equal(player.hp,4);
+  assert.equal(player.armor,1);
+  assert.equal(player.speed,90);
+  assert.equal(player.delay,.9);
+ }
+ t.setDifficulty(1);
+});

@@ -155,3 +155,19 @@ Play on physical Safari to assess rapid thumb turns while firing, dead-zone feel
 The player reported that the 0.3.2 HTML no longer loaded. The exact failure could not be reproduced locally. The new standalone export embeds smaller PNG copies of the six existing sprites at up to 192 pixels on the longest edge. This brings the file down from 3,016,767 to 552,689 bytes. The repository artwork and full resolution packaging option are preserved. The page now shows an opening instruction when JavaScript is disabled and a message if the viewer cannot create a 2D canvas.
 
 The 52 gameplay, projectile and input/audio groups passed on the source and compact export. The native render harness now checks the initial menu frame, invokes the wired Deploy button and renders the first live frame with four tanks. It also decoded all six sprites and rendered arena and wall impact scenes at 844×390, 667×375 and 1024×768 for both versions. The compact arena render was visually inspected. Packaging confirmed the game code is identical to the source once the asset URLs are restored. Physical Safari and the iOS file viewer were unavailable for testing.
+
+## 2026-11-06 — Fairer CPU encounters (0.3.4)
+
+Inspected open PRs #1 and #2 and verified the project against PR #2 head `47b52c9` (0.3.3). The tree has no AGENTS.md. Player feedback was that CPU tanks reacted too quickly and were hard to destroy.
+
+Easy now waits 0.45 s after acquiring a clear shot on the player and 0.42 s before dodging the same nearby player shell. Normal waits 0.25 s and 0.24 s respectively. Losing a firing line resets aim. Hard responds immediately as before. An initial pass delayed reactions to every tank and made CPU-only battles end much sooner, so the final timings target encounters with the player. Normal CPUs start with four hull points and no armour. Easy CPUs start with three and no armour. Hard CPUs and the player start with four plus armour. Armour pickups still work. The fortress layout, hit rules, base speeds and player controls were preserved.
+
+### Verification
+
+- Ran `BALANCE=1 node tests/gameplay.cjs [path-to-html]` against 0.3.3 and 0.3.4. At 60 updates/s, an exposed player previously drew a CPU shot and triggered a dodge in one update on all levels. Easy now first fires/dodges on updates 29/27, Normal on 17/16 and Hard on 1/1. Separated clean hits to defeat a CPU changed from five on every level to three, four and five respectively. The old build failed the new reaction regression as expected.
+- Five matched seeds per difficulty with a stationary player and a 180 s cap. On Normal, median first elimination went from 25.5 to 25.8 s. Completed rounds went from 3/5 (47.9–102.6 s) to 4/5 (39.1–68.6 s). Hard matched the baseline for all five seeds. These are repeatable diagnostics, not a prediction of human match length.
+- `npm test` and the same suites against the compact standalone export passed all 55 groups, including the new checks for reaction windows, cover resetting aim, and durability. Earlier collision, completion, restart, touch and audio checks passed.
+- `npm run test:render` passed for source and standalone. It exercised Deploy and the first live frame and rendered arena/impact scenes with all six PNGs at 667×375, 844×390 and 1024×768. Inspected the compact 844×390 arena render. Export size: 553,569 bytes.
+- Playwright attempted local Chromium before the viewport checks. Chromium exited at startup because its process singleton could not create a socket (Operation not permitted). Browser input, physical Safari and speaker quality remain unverified.
+
+Next: compare Easy and Normal on a real iPhone/iPad to judge the reaction windows, then resume touch, animation and sound work. Treat this balance pass as complete unless fresh feedback or regressions justify revisiting it.

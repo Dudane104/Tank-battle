@@ -22,7 +22,7 @@ html,body{touch-action:auto}.screen{touch-action:pan-y;background:radial-gradien
 .launch-note{position:fixed;inset:0;z-index:40;display:grid;place-content:center;padding:24px;text-align:center;color:white;background:#0b100d}
 .launch-note[hidden]{display:none}
 </style></head><body><noscript><div class="launch-note">Blast Tanks needs JavaScript to play. Save this HTML file and open it in your editor's browser preview.</div></noscript><div id="launchNote" class="launch-note" role="alert" hidden></div><div id="app"><canvas id="game"></canvas><div class="hud" id="hud">BLAST TANKS • FORTRESS</div><div class="controls" id="controls"><div class="dpad" id="dpad" role="group" aria-label="Slide to steer"><button aria-label="Move up" class="ctl u" data-dir="up">▲</button><button aria-label="Move down" class="ctl d" data-dir="down">▼</button><button aria-label="Move left" class="ctl l" data-dir="left">◀</button><button aria-label="Move right" class="ctl r" data-dir="right">▶</button></div><button class="fire" id="fire">FIRE</button></div>
-<div class="screen" id="menu"><div class="card"><div class="logo">BLAST<br>TANKS</div><div class="tag">FORTRESS BATTLE • BREAK THROUGH. OUTLAST. WIN.</div><button class="menu primary" id="start">DEPLOY • 4-TANK BATTLE</button><button class="menu" id="sound">SOUND: ON</button><button class="menu" id="volume">VOLUME: 50%</button><button class="menu" id="difficulty">CPU DIFFICULTY: NORMAL</button><div class="help">RED = YOU • BLUE / GREEN / YELLOW = CPU<br>4 hull points + starting armour. Sheltered spawns and staggered routes.<br>Slide your thumb across the D-pad to turn, or tap a clear route. Hold FIRE. Amber rings warn of a cross-blast—back away!<br>Destroy crates and barricades, collect upgrades and be the last tank standing.</div></div></div>
+<div class="screen" id="menu"><div class="card"><div class="logo">BLAST<br>TANKS</div><div class="tag">FORTRESS BATTLE • BREAK THROUGH. OUTLAST. WIN.</div><button class="menu primary" id="start">DEPLOY • 4-TANK BATTLE</button><button class="menu" id="sound">SOUND: ON</button><button class="menu" id="volume">VOLUME: 50%</button><button class="menu" id="difficulty">CPU DIFFICULTY: NORMAL</button><div class="help">RED = YOU • BLUE / GREEN / YELLOW = CPU<br>You start with 4 hull points and armour. Choose CPU difficulty for more or less challenge.<br>Slide your thumb across the D-pad to turn, or tap a clear route. Hold FIRE. Amber rings warn of a cross-blast—back away!<br>Destroy crates and barricades, collect upgrades and be the last tank standing.</div></div></div>
 <button id="audioToggle" class="audio-toggle" aria-label="Toggle sound">SOUND ON</button><button class="pause hidden" id="pause" aria-label="Pause battle">Ⅱ</button><div class="screen hidden" id="paused"><div class="card"><div class="logo">PAUSED</div><button class="menu primary" id="resume">RESUME BATTLE</button><button class="menu" id="quit">MAIN MENU</button></div></div><div class="screen hidden" id="end"><div class="card"><div class="logo" id="result">YOU WIN!</div><button class="menu primary" id="again">PLAY AGAIN</button><button class="menu" id="main">MAIN MENU</button></div></div><div class="rotate">Rotate your device to landscape to play BLAST TANKS.</div></div>
 <script>
 (()=>{ 'use strict';
@@ -91,7 +91,21 @@ function buildMap(){
  for(const [a,b]of [[1,1],[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]])for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=a+dx,y=b+dy;if(x>0&&y>0&&x<COLS-1&&y<ROWS-1)grid[y][x]=0}
  terrainDirty=true;
 }
-function tank(i,cx,cy){const p=center(cx,cy);return{id:i,x:p.x,y:p.y,a:i%2?Math.PI:0,alive:true,inv:3,speed:90,range:1,delay:.9,cool:0,maxShells:1,armor:1,hits:0,hp:4,maxHp:4,ai:0,waypoint:null,dir:{x:0,y:0}}}
+const CPU_LEVELS = [
+ { routeInterval: .65, aimDelay: .45, dodgeDelay: .42, hull: 3, armor: 0 },
+ { routeInterval: .38, aimDelay: .25, dodgeDelay: .24, hull: 4, armor: 0 },
+ { routeInterval: .22, aimDelay: 0, dodgeDelay: 0, hull: 4, armor: 1 },
+];
+function tank(i,cx,cy){
+ const p=center(cx,cy);
+ const cpu=i===0?null:CPU_LEVELS[difficulty];
+ const hull=cpu?.hull??4;
+ return {
+  id:i,x:p.x,y:p.y,a:i%2?Math.PI:0,alive:true,inv:3,speed:90,range:1,
+  delay:.9,cool:0,maxShells:1,armor:cpu?.armor??1,hits:0,hp:hull,maxHp:hull,
+  ai:0,waypoint:null,dir:{x:0,y:0},threat:null,threatSince:0,aimTarget:null,aimSince:0,
+ };
+}
 function start(){sound.unlock();sound.stop();resetInput();elapsed=0;buildMap();const s=[[1,1],[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]];tanks=s.map((p,i)=>tank(i,p[0],p[1]));shells=[];blasts=[];pickups=[];particles=[];tapTarget=null;roundEnd=0;state='play';document.getElementById('app').classList.add('playing');document.getElementById('pause').classList.remove('hidden');document.getElementById('paused').classList.add('hidden');document.getElementById('menu').classList.add('hidden');document.getElementById('end').classList.add('hidden')}
 function blocked(cx,cy){return !inGrid(cx,cy)||grid[cy][cx]>0} function canMove(t,x,y){const r=14;for(const dx of[-r,r])for(const dy of[-r,r]){const c=cell(x+dx,y+dy);if(blocked(c.x,c.y))return false}return true}
 function move(t,dx,dy,dt,assist=false){dt=Math.min(dt,.033);if(!t.alive||(!dx&&!dy))return;const m=Math.hypot(dx,dy);dx/=m;dy/=m;t.a=Math.atan2(dy,dx);let nx=t.x+dx*t.speed*dt,ny=t.y+dy*t.speed*dt;
@@ -131,14 +145,30 @@ function route(from,to){
 function clearShot(t,o){const dx=o.x-t.x,dy=o.y-t.y;if(Math.abs(dx)>10&&Math.abs(dy)>10)return false;if(Math.hypot(dx,dy)>300)return false;const steps=Math.ceil(Math.hypot(dx,dy)/8);for(let i=1;i<steps;i++){const c=cell(t.x+dx*i/steps,t.y+dy*i/steps);if(blocked(c.x,c.y))return false}return true}
 function ai(t,dt){
  t.ai-=dt;if(elapsed<2)return;
- if(t.ai<=0){t.ai=[.65,.38,.22][difficulty];let target=null,best=Infinity;for(const o of [...tanks.filter(o=>o.alive&&o.id!==t.id),...pickups]){const d=Math.hypot(o.x-t.x,o.y-t.y)*(o.type?.75:1);if(d<best){best=d;target=o}}
+ const level=CPU_LEVELS[difficulty];
+ if(t.ai<=0){t.ai=level.routeInterval;let target=null,best=Infinity;for(const o of [...tanks.filter(o=>o.alive&&o.id!==t.id),...pickups]){const d=Math.hypot(o.x-t.x,o.y-t.y)*(o.type?.75:1);if(d<best){best=d;target=o}}
  if(target){const own=cell(t.x,t.y),mid=center(own.x,own.y);t.waypoint=Math.hypot(t.x-mid.x,t.y-mid.y)>3?own:route(t,target)}else t.waypoint=null;
  }
  // Step away from nearby shells and fresh explosions instead of charging through them.
  const danger=shells.find(s=>Math.hypot(s.x-t.x,s.y-t.y)<95)||blasts.find(b=>b.cells.some(([x,y])=>Math.hypot(center(x,y).x-t.x,center(x,y).y-t.y)<70));
- if(danger){const options=dirs.map(([dx,dy])=>({dx,dy,x:t.x+dx*20,y:t.y+dy*20})).filter(p=>canMove(t,p.x,p.y));if(options.length){options.sort((a,b)=>Math.hypot(b.x-(danger.x??t.x),b.y-(danger.y??t.y))-Math.hypot(a.x-(danger.x??t.x),a.y-(danger.y??t.y)));move(t,options[0].dx,options[0].dy,dt);t.ai=0;return}}
+ if(danger!==t.threat){
+  t.threat=danger;
+  t.threatSince=elapsed;
+ }
+ // Give the player an opening without changing CPU-versus-CPU hazard reactions.
+ const dodgeDelay=danger?.owner===0?level.dodgeDelay:0;
+ if(danger&&elapsed-t.threatSince>=dodgeDelay){const options=dirs.map(([dx,dy])=>({dx,dy,x:t.x+dx*20,y:t.y+dy*20})).filter(p=>canMove(t,p.x,p.y));if(options.length){options.sort((a,b)=>Math.hypot(b.x-(danger.x??t.x),b.y-(danger.y??t.y))-Math.hypot(a.x-(danger.x??t.x),a.y-(danger.y??t.y)));move(t,options[0].dx,options[0].dy,dt);t.ai=0;t.aimTarget=null;return}}
  if(t.waypoint){const p=center(t.waypoint.x,t.waypoint.y),dx=p.x-t.x,dy=p.y-t.y;if(Math.hypot(dx,dy)<2){t.x=p.x;t.y=p.y;t.ai=0;t.waypoint=null}else if(grid[t.waypoint.y][t.waypoint.x]===1){t.a=Math.atan2(dy,dx);if(Math.hypot(dx,dy)>TILE*2.6)move(t,dx,dy,dt);else shoot(t)}else move(t,dx,dy,dt)}
- const enemy=tanks.find(o=>o.alive&&o.id!==t.id&&clearShot(t,o));if(enemy&&t.cool<=0){t.a=Math.atan2(enemy.y-t.y,enemy.x-t.x);shoot(t)}
+ const enemy=tanks.find(o=>o.alive&&o.id!==t.id&&clearShot(t,o));
+ if(enemy!==t.aimTarget){
+  t.aimTarget=enemy;
+  t.aimSince=elapsed;
+ }
+ const aimDelay=enemy?.id===0?level.aimDelay:0;
+ if(enemy&&t.cool<=0&&elapsed-t.aimSince>=aimDelay){
+  t.a=Math.atan2(enemy.y-t.y,enemy.x-t.x);
+  shoot(t);
+ }
 }
 // Resolve the newest steering event before a gesture-triggered shot, even between frames.
 function playerDirection(){return {x:(input.right||touchDir==='right'?1:0)-(input.left||touchDir==='left'?1:0),y:(input.down||touchDir==='down'?1:0)-(input.up||touchDir==='up'?1:0)}}

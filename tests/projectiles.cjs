@@ -17,5 +17,5 @@ test('long update detects a tank crossed by a shell',()=>{const s=setup(),me=s.t
 test('crate survives warning fuse and breaks on detonation',()=>{const s=setup(),me=s.tanks[0];s.grid[6][7]=1;me.a=0;g.shoot(me);tick(.2);assert.equal(s.grid[6][7],1);assert.ok(s.shells[0].fuse>0);tick(.6);assert.equal(s.grid[6][7],0);});
 test('muzzle contact arms on the next simulation tick, preserving fuse timing',()=>{const s=setup(),me=s.tanks[0];s.grid[6][7]=1;me.a=0;g.shoot(me);assert.equal(s.shells[0].fuse,undefined);g.update(1/60);assert.equal(s.shells[0].fuse,.7);assert.equal(s.grid[6][7],1);});
 test('impact warning retains shell heading',()=>{const s=setup(),me=s.tanks[0];s.grid[7][6]=1;me.a=Math.PI/2;g.shoot(me);tick(.2);assert.equal(s.shells[0].a,Math.PI/2);});
-test('restart discards armed fuses',()=>{const s=setup();s.grid[6][7]=1;s.tanks[0].a=0;g.shoot(s.tanks[0]);tick(.2);g.start();tick(1);assert.equal(g.get().shells.length,0);assert.equal(g.get().blasts.length,0);assert.ok(g.get().tanks.every(t=>t.alive&&t.hp===4));});
+test('restart discards armed fuses',()=>{const s=setup();s.grid[6][7]=1;s.tanks[0].a=0;g.shoot(s.tanks[0]);tick(.2);g.start();tick(1);assert.equal(g.get().shells.length,0);assert.equal(g.get().blasts.length,0);assert.ok(g.get().tanks.every(t=>t.alive&&t.hp===t.maxHp));});
 console.log(`${count} projectile regression checks passed`);
