@@ -171,3 +171,28 @@ Easy now waits 0.45 s after acquiring a clear shot on the player and 0.42 s befo
 - Playwright attempted local Chromium before the viewport checks. Chromium exited at startup because its process singleton could not create a socket (Operation not permitted). Browser input, physical Safari and speaker quality remain unverified.
 
 Next: compare Easy and Normal on a real iPhone/iPad to judge the reaction windows, then resume touch, animation and sound work. Treat this balance pass as complete unless fresh feedback or regressions justify revisiting it.
+
+## 2026-11-07 — Easy counterattack openings and tactical visual warnings (0.3.5)
+
+### Scope and implementation
+
+Verified every source and PNG against PR #2 head bf6a36d (0.3.4), inspected the complete project, log and both open PRs. No repository AGENTS.md is present. Continued dev/fortress-battles.
+
+Player feedback still identified Easy as too difficult. Easy CPUs now hold their distance when the player is visible within 120 world units and pause for 0.85 seconds after successfully firing at the player. This creates an opening to counterattack and step out of the incoming blast. The pause includes evasion, which deliberately makes that Easy opponent vulnerable during recovery. It applies to player-directed shots. Normal and Hard retain their earlier settings. Easy still has three hull points. Tank speed, weapon damage and the protected map are preserved.
+
+Armed shells now show amber marked tiles covering the current cross-blast footprint and a countdown arc. The preview stops at stone and includes the first crate in each direction, then recomputes against current cover during the fuse. A shared pure footprint function drives both warnings and detonation. Rendering the warning cannot destroy crates or grant pickups.
+
+The visual pass strengthens sprite team tints, adds team arcs and grounding shadows, darkens and cools the floor palette, and adds cover shadows and highlighted crate edges. Blast arms now connect along affected cells. These runtime refinements use all six existing PNG originals. Larger asset replacements, deployable charges, chain reactions and new vehicle audio remain future work.
+
+### Actual validation
+
+- All 60 automated groups pass on source and compact standalone HTML. The suites cover gameplay, collision/projectile occlusion, armour/damage, completion/restart, touch and audio. Added five groups cover Easy standoff and retreat time, a shoot-and-retreat win, preview/detonation equivalence without mutation, dynamically removed cover, and crate-origin/edge handling.
+- The new standoff regression fails against 0.3.4, which moves toward the player before firing. In a controlled single-opponent clear-lane scenario, a scripted player waits for the enemy shot, fires back and retreats perpendicular to the lane. The same sequence lost on 0.3.4 after 14.53 s with zero hits landed and zero player hull remaining. On 0.3.5 it wins after 6.52 s with three CPU hits and three player hull remaining. This is a deterministic encounter diagnostic, not a human win-rate claim or a full-map player evaluation.
+- Five stationary-player runs per difficulty with matched seeds and a 180-second cap. Easy first eliminations occur at 21.1–24.0 s. Three Easy rounds complete at 43.4–48.1 s, while two reach the cap. Normal and Hard reproduce their 0.3.4 seeded first-elimination and duration results. CPU stalling in capped runs remains an investigation priority.
+- Native rendering passes for source and standalone at 667×375, 844×390 and 1024×768, including Deploy/first live frame, arena, armed wall impacts, range-three footprint warnings and connected blasts. Inspected arena, phone warning and tablet blast images. Native Canvas does not verify the HTML controls or Safari gesture policy.
+- The compact packaging assertion verifies identical game source after restoring asset URLs. All six embedded PNGs decode. Export size is 555,680 bytes.
+- Playwright attempted /usr/bin/chromium and exited before viewport tests. Its process singleton failed socket creation with Operation not permitted. Browser CSS/multitouch, physical iPhone/iPad feel and real listening remain unverified.
+
+### Next priorities
+
+Get player feedback on the Easy counterattack opening and amber warnings, and investigate CPU routes that remain unfinished at the simulation cap. Continue visual animation and audio work after those checks. Preserve existing lingering-flame damage semantics. Timed charges and chain reactions need a separate design decision. This pass is ready for review with no merge or deployment.

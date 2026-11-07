@@ -116,3 +116,60 @@ test('Normal and Easy CPU durability drops while Hard and player durability reta
  }
  t.setDifficulty(1);
 });
+
+test('Easy holds a close firing distance and gives a retreat window after its shot',()=>{
+ const {player,cpu,shells}=combatScenario(0);
+ cpu.ai=0;
+ const start=cpu.x;
+ tick(.3);
+ assert.equal(cpu.x,start,'CPU should not rush into the player');
+ tick(.25);
+ assert.ok(shells.some(s=>s.owner===cpu.id),'CPU still returns fire');
+ const position={x:cpu.x,y:cpu.y};
+ t.input.down=true;
+ tick(.5);
+ t.resetInput();
+ assert.equal(cpu.x,position.x);
+ assert.equal(cpu.y,position.y);
+ assert.ok(player.y>position.y+30,'Player can leave the firing lane during recovery');
+ assert.equal(player.hp,4);
+});
+
+function counterattackScenario() {
+ const {player,cpu,shells}=combatScenario(0);
+ cpu.ai=0;
+ // Wait for the opponent's shot, return fire, then retreat perpendicular to the blast.
+ let lastCpuShot=null;
+ let returnY=player.y;
+ let phase='wait';
+ let phaseUntil=0;
+ const hp=cpu.hp;
+ for(let frame=0;frame<1800&&t.get().state==='play';frame++){
+  const now=t.get().elapsed;
+  if(phase==='wait'){
+   const shot=shells.find(s=>s.owner===cpu.id&&s!==lastCpuShot);
+   if(shot){
+    lastCpuShot=shot;
+    player.a=Math.atan2(cpu.y-player.y,cpu.x-player.x);
+    t.shoot(player);
+    phase='retreat';phaseUntil=now+.6;
+   }
+  }
+  t.input.down=phase==='retreat'&&now<phaseUntil;
+  if(phase==='retreat'&&now>=phaseUntil){phase='return';phaseUntil=now+.55}
+  t.input.up=phase==='return'&&now>phaseUntil&&player.y>returnY+2;
+  if(phase==='return'&&now>phaseUntil&&player.y<=returnY+2)phase='wait';
+  t.update(1/60);
+ }
+ t.resetInput();
+ return {playerHP:player.hp,cpuHP:cpu.hp,hits:hp-cpu.hp,state:t.get().state,time:t.get().elapsed-4};
+}
+if(process.env.EASY_BENCH)console.log('COUNTERATTACK',JSON.stringify(counterattackScenario()));
+test('Easy rewards a repeatable shoot-and-retreat counterattack with a win',()=>{
+ const result=counterattackScenario();
+ assert.equal(result.cpuHP,0);
+ assert.equal(result.state,'end');
+ assert.ok(result.playerHP>0);
+ assert.ok(result.time<20);
+ t.setDifficulty(1);
+});
