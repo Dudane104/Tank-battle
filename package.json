@@ -1,0 +1,9 @@
+{
+  "name": "blast-tanks-server",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "npx wrangler@4 deploy --config wrangler.jsonc"
+  }
+}
