@@ -196,3 +196,13 @@ The visual pass strengthens sprite team tints, adds team arcs and grounding shad
 ### Next priorities
 
 Get player feedback on the Easy counterattack opening and amber warnings, and investigate CPU routes that remain unfinished at the simulation cap. Continue visual animation and audio work after those checks. Preserve existing lingering-flame damage semantics. Timed charges and chain reactions need a separate design decision. This pass is ready for review with no merge or deployment.
+
+## v0.4.0 — online rooms and four battle maps (12 November 2026)
+
+Preserved the v0.3.5 engine, assets, CPU profiles, slide steering and sound. Added Forest Fortress, Desert Crossroads, Industrial Grid and Island Bunkers selection for offline and host-selected online play. A generated server engine uses the same movement, collision, projectile, footprint, pickup and damage functions; regenerate with `python3 scripts/build-online.py` after changing those rules.
+
+Added a Cloudflare Worker plus one Durable Object per six-letter room. The server simulates at 30 ms steps and sends snapshots every 60 ms. Clients send steering/fire only, and interpolate tank positions. All online humans get four hull plus armour; vacant slots retain the selected CPU difficulty. Host start/rematch requires 2–4 humans. Host role transfers on departure; disconnected tanks become CPUs. Controls expire after 500 ms without fresh input. Messages are size/rate limited and movement values validated. Games end after elimination or a four-minute draw cap. No mid-round join/reconnect or persistent match recovery.
+
+Added an HTTPS server-address field saved per browser, room codes, winner displays, host-only rematch and server /health. Included Netlify public page, Cloudflare config with SQLite migration and illustrated-by-settings setup instructions. Server has not been deployed; no production URL is assumed. Game-only Netlify ZIP must not replace the full PJC hub deployment.
+
+Validation: existing 60 regression groups passed; 11 online/map groups plus a client room-flow group passed with simulated socket sessions. Native canvas verifies six PNGs and multiple gameplay scenes at 667×375, 844×390 and 1024×768. Chromium executable is present but cannot launch in this environment; no real-browser or physical Safari result claimed. Cloudflare Worker runtime deployment, internet connectivity/latency and actual multiplayer devices still require the setup smoke test. Existing CPU routing stalls in long stationary-player simulations remain outside this iteration.

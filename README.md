@@ -1,9 +1,9 @@
 # Blast Tanks — Fortress Battle
 
-An offline HTML5 arcade battle for four tanks, built on the original Tank-battle implementation. Designed for iPhone/iPad landscape, with keyboard support.
+An offline and optional online HTML5 arcade battle for four tanks, built on the original Tank-battle implementation. Designed for iPhone/iPad landscape, with keyboard support.
 
 ## Play / host
-Upload `index.html` and the entire `assets/` directory together to your web host. No build step, API key or multiplayer server is required. Serve over HTTP for reliable asset loading (`python3 -m http.server 8000` for local development).
+Upload `index.html` and the entire `assets/` directory together to your web host. Offline play needs no server. For online play deploy the included Cloudflare Worker; see BLAST_TANKS_V0_4_0_SETUP.md. Netlify Git builds publish public/. Serve over HTTP for reliable asset loading (`python3 -m http.server 8000` for local development).
 
 Move using the larger D-pad (slide your thumb between directions without lifting), WASD/arrow keys, or tap a clear route. Touch steering chooses one cardinal direction at a time, with a small centre dead zone and slight corner alignment assistance. Hold FIRE/Space to launch shells. Amber marked tiles and a countdown arc warn of the cross-blast after 0.7 seconds. The marked cross stops at rocks and the first crate in each direction and updates as cover is destroyed. Retreat from your own shells too. Crates break; rocks stop blasts. Your tank starts with four hull points and one armour charge. Normal CPUs start with four hull points, Easy CPUs with three, and Hard CPUs with four plus armour. Easy and Normal CPUs take a moment to react to you and your shells. The last survivor wins. Pause with the top-right button or Escape.
 
@@ -32,3 +32,7 @@ Version 0.3.2 resolves steering before gesture-triggered fire and turns/moves be
 To make the smaller standalone export, install the optional canvas dependency and run `npm run package:standalone -- --compact`. This embeds smaller copies of the existing artwork. For local play on iPad, save the HTML and open it through Koder’s browser preview in landscape.
 
 Easy CPUs keep a short distance when they can see you close by and pause for 0.85 seconds after firing at you. Use that opening to shoot back and retreat across the firing lane. Team colours, cover edges and connected blast arms improve battlefield readability.
+
+
+## v0.4.0 online setup
+Read [the step-by-step setup guide](BLAST_TANKS_V0_4_0_SETUP.md). The server is not deployed by this repository change. Rebuild the shared server engine with `python3 scripts/build-online.py`, run `npm test` and `npm run test:online`, then export the page with `node scripts/package-standalone.cjs --compact` and copy the export into public/index.html.
